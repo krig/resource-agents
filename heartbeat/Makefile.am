@@ -25,7 +25,7 @@ EXTRA_DIST		= $(ocf_SCRIPTS) $(ocfcommon_DATA) \
 
 AM_CPPFLAGS		= -I$(top_srcdir)/include -I$(top_srcdir)/linux-ha
 
-halibdir		= $(libexecdir)/heartbeat
+halibdir		= $(libdir)/heartbeat
 
 ocfdir		        = $(OCF_RA_DIR_PREFIX)/heartbeat
 
