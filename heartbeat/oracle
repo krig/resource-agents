@@ -27,12 +27,20 @@
 #	OCF_RESKEY_ipcrm (optional; defaults to "instance")
 #	OCF_RESKEY_clear_backupmode (optional; default to "false")
 #	OCF_RESKEY_shutdown_method (optional; default to "checkpoint/abort")
+#	OCF_RESKEY_monuser (optional; defaults to "OCFMON")
+#	OCF_RESKEY_monpassword (optional; defaults to "OCFMON")
 #
 # Initialization:
 
 : ${OCF_FUNCTIONS_DIR=${OCF_ROOT}/lib/heartbeat}
 . ${OCF_FUNCTIONS_DIR}/ocf-shellfuncs
 . ${OCF_FUNCTIONS_DIR}/ora-common.sh
+
+# Defaults:
+OCF_RESKEY_monuser_default="OCFMON"
+OCF_RESKEY_monpassword_default="OCFMON"
+: ${OCF_RESKEY_monuser=${OCF_RESKEY_monuser_default}}
+: ${OCF_RESKEY_monpassword=${OCF_RESKEY_monpassword_default}}
 
 #######################################################################
 
@@ -98,6 +106,29 @@ If this does not work for you, just set it explicitely.
 </longdesc>
 <shortdesc lang="en">user</shortdesc>
 <content type="string" default="" />
+</parameter>
+
+<parameter name="monuser" unique="0">
+<longdesc lang="en">
+Monitoring user name. Every connection as
+sysdba is logged in an audit log. This can
+result in a large number of new files created.
+A new user is created (if it doesn't exist) in
+the start action and subsequently used in monitor.
+It should have very limited rights. Make sure
+that the password for this user does not expire.
+</longdesc>
+<shortdesc lang="en">monuser</shortdesc>
+<content type="string" default="OCFMON" />
+</parameter>
+
+<parameter name="monpassword" unique="0">
+<longdesc lang="en">
+Password for the monitoring user. Make sure
+that the password for this user does not expire.
+</longdesc>
+<shortdesc lang="en">monpassword</shortdesc>
+<content type="string" default="OCFMON" />
 </parameter>
 
 <parameter name="ipcrm" unique="0">
@@ -250,7 +281,7 @@ dbasql() {
 	runsql "connect / as sysdba" $*
 }
 monsql() {
-	runsql "connect $MONUSR/$MONUSR" $*
+	runsql "connect $MONUSR/$MONPWD" $*
 }
 # use dbasql_one if the query should result in a single line output
 # at times people stuff commands in oracle .profile
@@ -338,7 +369,7 @@ show_mon_user() {
 }
 mk_mon_user() {
 	cat<<EOF
-create user $MONUSR identified by $MONUSR profile $MONPROFILE;
+create user $MONUSR identified by $MONPWD profile $MONPROFILE;
 grant create session to $MONUSR;
 grant select on v_\$instance to $MONUSR;
 EOF
@@ -696,7 +727,8 @@ proc_pids() { show_procs | awk '{print $1}'; }
 PROCS_CLEANUP_TIME="30"
 
 MONPROFILE="OCFMONPROFILE"
-MONUSR="OCFMON"
+MONUSR="$OCF_RESKEY_monuser"
+MONPWD="$OCF_RESKEY_monpassword"
 OCF_REQUIRED_PARAMS="sid"
 OCF_REQUIRED_BINARIES="sqlplus"
 ocf_rarun $*
