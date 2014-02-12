@@ -721,7 +721,7 @@ proc_pids() { show_procs | awk '{print $1}'; }
 PROCS_CLEANUP_TIME="30"
 
 MONPROFILE="OCFMONPROFILE"
-MONUSR="$OCF_RESKEY_monuser"
+MONUSR="${OCF_RESKEY_monuser^^}"
 MONPWD="$OCF_RESKEY_monpassword"
 OCF_REQUIRED_PARAMS="sid"
 OCF_REQUIRED_BINARIES="sqlplus"
