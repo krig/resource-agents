@@ -130,9 +130,9 @@ findif()
   fi
   if [ -n "$nic" ] ; then
     # NIC supports more than two.
-    set -- `ip -o -f $family route list match $match $scope | grep "dev $nic"`
+    set -- `ip -o -f $family route list match $match $scope | sort | tail -n1 | grep "dev $nic"`
   else
-    set -- `ip -o -f $family route list match $match $scope`
+    set -- `ip -o -f $family route list match $match $scope | sort | tail -n1`
   fi
   if [ $# = 0 ] ; then
     case $OCF_RESKEY_ip in
