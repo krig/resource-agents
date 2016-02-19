@@ -302,7 +302,7 @@ apache_stop() {
 }
 
 apache_monitor_10() {
-	if [ "$TESTCONFFILE" ]; then
+	if [ -f "$TESTCONFFILE" ] && [ -r "$TESTCONFFILE" ]; then
 		readtestconf < $TESTCONFFILE
 	else
 		test_url="$TESTURL"
