@@ -59,6 +59,8 @@ ocf_SCRIPTS	     =  ClusterMon		\
 			AoEtarget		\
 			apache			\
 			asterisk		\
+			awseip			\
+			awsvip			\
 			nginx			\
 			AudibleAlarm		\
 			clvm		\
@@ -104,6 +106,7 @@ ocf_SCRIPTS	     =  ClusterMon		\
 			portblock		\
 			postfix			\
 			pound			\
+			pgagent			\
 			pgsql			\
 			proftpd			\
 			Pure-FTPd		\
@@ -132,6 +135,7 @@ ocf_SCRIPTS	     =  ClusterMon		\
 			VirtualDomain		\
 			varnish			\
 			vmware			\
+			vsftpd			\
 			WAS			\
 			WAS6			\
 			WinPopup		\
