@@ -297,6 +297,7 @@ nfsserver_systemd_monitor()
 {
 	local threads_num
 	local rc
+	local fn
 
 	nfs_exec is-active
 	rc=$?
@@ -323,6 +324,8 @@ nfsserver_systemd_monitor()
 
 nfsserver_monitor ()
 {
+	local fn
+
 	set_exec_mode
 	fn=`mktemp`
 	case $EXEC_MODE in
@@ -555,6 +558,7 @@ notify_locks()
 nfsserver_start ()
 {
 	local rc;
+	local fn
 
 	if nfsserver_monitor; then
 		ocf_log debug "NFS server is already started"
@@ -614,6 +618,8 @@ nfsserver_start ()
 
 nfsserver_stop ()
 {
+	local fn
+
 	ocf_log info "Stopping NFS server ..."
 
 	# backup the current sm state information to the ha folder before stopping.
