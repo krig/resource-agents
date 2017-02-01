@@ -60,11 +60,9 @@ action() {
 case "$1" in
   start)
         action "Starting ldirectord" $DAEMON start
-	touch /var/lock/subsys/ldirectord
 	;;
   stop)
         action "Stopping ldirectord" $DAEMON stop
-	rm -f /var/lock/subsys/ldirectord
 	;;
   restart)
         action "Restarting ldirectord" $DAEMON restart
