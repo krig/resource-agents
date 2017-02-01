@@ -100,10 +100,10 @@ If "exclusive" is set on a non clustered volume group, this overrides the tag to
 <longdesc lang="en">
 If set, the volume group will be activated partially even with some
 physical volumes missing. It helps to set to true when using mirrored
-logical volumes.
+logical volumes. Set to true by default in SLE HAE.
 </longdesc>
 <shortdesc lang="en">Activate VG partially when missing PVs</shortdesc>
-<content type="string" default="false" />
+<content type="string" default="true" />
 </parameter>
 
 </parameters>
@@ -368,7 +368,7 @@ get_activate_options()
 	2) options="${options}ey";;
 	esac
 
-	if ocf_is_true "$OCF_RESKEY_partial_activation" ; then
+	if ocf_is_true "$PARTIAL_INVOCATION" ; then
 		options="${options} --partial"
 	fi
 
@@ -682,6 +682,7 @@ then
 	exit $OCF_ERR_INSTALLED
 fi
 LVM_MAJOR="${LVM_VERSION%%.*}"
+PARTIAL_INVOCATION=${OCF_RESKEY_partial_activation:-"true"}
 
 VOLUME=$OCF_RESKEY_volgrpname
 OP_METHOD=$1
