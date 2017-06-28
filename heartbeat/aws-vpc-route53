@@ -90,7 +90,7 @@ Use a configuration in "crm configure edit" which looks as follows. Replace
 hostedzoneid, fullname and profile with the appropriate values:
 
 primitive res_route53 ocf:heartbeat:aws-vpc-route53 \
-        params hostedzoneid=Z22XDORCGO4P3T fullname=suse-service5.awslab.cloud.sap.corp. profile=cluster \
+        params hostedzoneid=EX4MPL3EX4MPL3 fullname=service.cloud.example.corp. profile=cluster \
         op start interval=0 timeout=180 \
         op stop interval=0 timeout=180 \
         op monitor interval=300 timeout=180 \
@@ -109,7 +109,7 @@ the Route 53 record.
 <parameter name="fullname" required="1">
 <longdesc lang="en">
 The full name of the service which will host the IP address.
-Example: suse-service5.awslab.cloud.sap.corp.
+Example: service.cloud.example.corp.
 Note: The trailing dot is important to Route53!
 </longdesc>
 <shortdesc lang="en">Full service name</shortdesc>
@@ -152,12 +152,8 @@ output has to be "text".
 END
 }
 
-debugger() {
-	ocf_log debug "DEBUG: $1"
-}
-
 ec2ip_validate() {
-	debugger "function: validate"
+	ocf_log debug "function: validate"
 
 	# Full name
 	[[ -z "$OCF_RESKEY_fullname" ]] && ocf_log error "Full name parameter not set $OCF_RESKEY_fullname!" && exit $OCF_ERR_CONFIGURED
@@ -171,12 +167,12 @@ ec2ip_validate() {
 	# TTL
 	[[ -z "$OCF_RESKEY_ttl" ]] && ocf_log error "TTL not set $OCF_RESKEY_ttl!" && exit $OCF_ERR_CONFIGURED
 
-	debugger "Testing aws command"
+	ocf_log debug "Testing aws command"
 	aws --version 2>&1
 	if [ "$?" -gt 0 ]; then
-		ocf_log error "Error while executing aws command as user root! Please check if AWS CLI tools (Python flavor) are properly installed and configured." && exit $OCF_ERR_INSTALLED
+		error "Error while executing aws command as user root! Please check if AWS CLI tools (Python flavor) are properly installed and configured." && exit $OCF_ERR_INSTALLED
 	fi
-	debugger "ok"
+	ocf_log debug "ok"
 
 	if [ -n "$OCF_RESKEY_profile" ]; then
 		AWS_PROFILE_OPT="--profile $OCF_RESKEY_profile"
@@ -189,15 +185,15 @@ ec2ip_validate() {
 
 ec2ip_monitor() {
 	ec2ip_validate
-	debugger "function: ec2ip_monitor: check Route53 record "
+	ocf_log debug "function: ec2ip_monitor: check Route53 record "
 	IPADDRESS="$(ec2metadata aws ip | grep local-ipv4 | /usr/bin/awk '{ print $2 }')"
 	ARECORD="$(aws $AWS_PROFILE_OPT route53 list-resource-record-sets --hosted-zone-id $OCF_RESKEY_hostedzoneid --query "ResourceRecordSets[?Name=='$OCF_RESKEY_fullname']" | grep RESOURCERECORDS | /usr/bin/awk '{ print $2 }' )"
-	debugger "function: ec2ip_monitor: found IP address: $ARECORD ."
+	ocf_log debug "function: ec2ip_monitor: found IP address: $ARECORD ."
 	if [ "${ARECORD}" == "${IPADDRESS}" ]; then
-		debugger "function: ec2ip_monitor:  ARECORD $ARECORD found"
+		ocf_log debug "function: ec2ip_monitor:  ARECORD $ARECORD found"
 		return $OCF_SUCCESS
 	else
-		debugger "function: ec2ip_monitor: no ARECORD found"
+		ocf_log debug "function: ec2ip_monitor: no ARECORD found"
 		return $OCF_NOT_RUNNING
 	fi
 
@@ -208,16 +204,16 @@ ec2ip_stop() {
 	ocf_log info "EC2: Bringing down Route53 agent. (Will remove ARECORD)"
 	IPADDRESS="$(ec2metadata aws ip | grep local-ipv4 | /usr/bin/awk '{ print $2 }')"
 	ARECORD="$(aws $AWS_PROFILE_OPT route53 list-resource-record-sets --hosted-zone-id $OCF_RESKEY_hostedzoneid --query "ResourceRecordSets[?Name=='$OCF_RESKEY_fullname']" | grep RESOURCERECORDS | /usr/bin/awk '{ print $2 }' )"
-	debugger "function: ec2ip_monitor: found IP address: $ARECORD ."
+	ocf_log debug "function: ec2ip_monitor: found IP address: $ARECORD ."
 	if [ ${ARECORD} != ${IPADDRESS} ]; then
-		debugger "function: ec2ip_monitor: no ARECORD found"
+		ocf_log debug "function: ec2ip_monitor: no ARECORD found"
 		return $OCF_SUCCESS
 	else
-		debugger "function: ec2ip_monitor:	ARECORD $ARECORD found"
+		ocf_log debug "function: ec2ip_monitor:	ARECORD $ARECORD found"
 		# determine IP address
 		IPADDRESS="$(ec2metadata aws ip | grep local-ipv4 | /usr/bin/awk '{ print $2 }')"
 		# Patch file
-		debugger "function ec2ip_stop: will delete IP address to ${IPADDRESS}"
+		ocf_log debug "function ec2ip_stop: will delete IP address to ${IPADDRESS}"
 		ocf_log info "EC2: Updating Route53 $OCF_RESKEY_hostedzoneid with $IPADDRESS for $OCF_RESKEY_fullname"
 		ROUTE53RECORD="/var/tmp/route53-${OCF_RESKEY_hostedzoneid}-${IPADDRESS}.json"
 		echo "{ " > ${ROUTE53RECORD}
@@ -240,18 +236,18 @@ ec2ip_stop() {
 		echo "}" >> ${ROUTE53RECORD}
 		cmd="aws --profile ${OCF_RESKEY_profile} route53 change-resource-record-sets --hosted-zone-id ${OCF_RESKEY_hostedzoneid} \
 		  --change-batch file://${ROUTE53RECORD} "
-		debugger "function ec2ip_start: executing command: $cmd"
+		ocf_log debug "function ec2ip_start: executing command: $cmd"
 		CHANGEID=$($cmd | grep CHANGEINFO |	 /usr/bin/awk -F'\t' '{ print $3 }' )
-		debugger "Change id: ${CHANGEID}"
+		ocf_log debug "Change id: ${CHANGEID}"
 		rm ${ROUTE53RECORD}
 		CHANGEID=$(echo $CHANGEID |cut -d'/' -f 3 |cut -d'"' -f 1 )
-		debugger "Change id: ${CHANGEID}"
+		ocf_log debug "Change id: ${CHANGEID}"
 		STATUS="PENDING"
 		MYSECONDS=2
 		while [ "$STATUS" = 'PENDING' ]; do
 			sleep	${MYSECONDS}
 			STATUS="$(aws --profile ${OCF_RESKEY_profile} route53 get-change --id $CHANGEID | grep CHANGEINFO |  /usr/bin/awk -F'\t' '{ print $4 }' |cut -d'"' -f 2 )"
-			debugger "Waited for ${MYSECONDS} seconds and checked execution of Route 53 update status: ${STATUS} "
+			ocf_log debug "Waited for ${MYSECONDS} seconds and checked execution of Route 53 update status: ${STATUS} "
 		done
 
 		return $OCF_SUCCESS
@@ -264,7 +260,7 @@ ec2ip_start() {
 	# determine IP address
 	IPADDRESS="$(ec2metadata aws ip | grep local-ipv4 | /usr/bin/awk '{ print $2 }')"
 	# Patch file
-	debugger "function ec2ip_start: will update IP address to ${IPADDRESS}"
+	ocf_log debug "function ec2ip_start: will update IP address to ${IPADDRESS}"
 	ocf_log info "EC2: Updating Route53 $OCF_RESKEY_hostedzoneid with $IPADDRESS for $OCF_RESKEY_fullname"
 	ROUTE53RECORD="/var/tmp/route53-${OCF_RESKEY_hostedzoneid}-${IPADDRESS}.json"
 	echo "{ " > ${ROUTE53RECORD}
@@ -287,18 +283,18 @@ ec2ip_start() {
 	echo "}" >> ${ROUTE53RECORD}
 	cmd="aws --profile ${OCF_RESKEY_profile} route53 change-resource-record-sets --hosted-zone-id ${OCF_RESKEY_hostedzoneid} \
 	  --change-batch file://${ROUTE53RECORD} "
-	debugger "function ec2ip_start: executing command: $cmd"
+	ocf_log debug "function ec2ip_start: executing command: $cmd"
 	CHANGEID=$($cmd | grep CHANGEINFO |  /usr/bin/awk -F'\t' '{ print $3 }' )
-	debugger "Change id: ${CHANGEID}"
+	ocf_log debug "Change id: ${CHANGEID}"
 	rm ${ROUTE53RECORD}
 	CHANGEID=$(echo $CHANGEID |cut -d'/' -f 3 |cut -d'"' -f 1 )
-	debugger "Change id: ${CHANGEID}"
+	ocf_log debug "Change id: ${CHANGEID}"
 	STATUS="PENDING"
 	MYSECONDS=2
 	while [ "$STATUS" = 'PENDING' ]; do
 		sleep  ${MYSECONDS}
 		STATUS="$(aws --profile ${OCF_RESKEY_profile} route53 get-change --id $CHANGEID | grep CHANGEINFO |  /usr/bin/awk -F'\t' '{ print $4 }' |cut -d'"' -f 2 )"
-		debugger "Waited for ${MYSECONDS} seconds and checked execution of Route 53 update status: ${STATUS} "
+		ocf_log debug "Waited for ${MYSECONDS} seconds and checked execution of Route 53 update status: ${STATUS} "
 	done
 
 	return $OCF_SUCCESS
